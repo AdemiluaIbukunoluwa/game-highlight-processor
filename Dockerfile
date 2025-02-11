@@ -8,7 +8,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # copy all the scripts into the container
-COPY scripts/*.py . 
+COPY *.py . 
 
 # AWS CLI for S3 and MediaConvert management(optional)
 RUN apt-get update && apt-get install -y awscli 
