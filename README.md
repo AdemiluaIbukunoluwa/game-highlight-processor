@@ -141,6 +141,81 @@ Optional - Confirm there is a video uploaded to s3://<your-bucket-name>/processe
 2. Identity Access Management (IAM) and least privilege
 3. How to enhance media quality 
 
+## Integrating Terraform
+
+### Step 1 : Set up vpcs
+
+Run the file in [resources/vpc_setup.sh](https://github.com/AdemiluaIbukunoluwa/game-highlight-processor/resources/vpc_setup.sh)
+
+This script sets up a basic networking structure, by creating a VPC with both public and private subnets which enables internet access for the public subnet while keeping the private subnet isolated.
+
+### Step 2 : Set API Key in AWS Secrets Manager
+
+Run the following command to store your API key in the secrets manager
+
+```
+aws ssm put-parameter \
+  --name "/myproject/rapidapi_key" \
+  --value "YOUR_SECRET_KEY" \
+  --type SecureString
+```
+
+The arn for the secrey will be set as the rapidapi_ssm_parameter_arn value in [terraform/tfvars](https://github.com/AdemiluaIbukunoluwa/game-highlight-processor/terraform/terraform.tfvars)
+
+### Step 3 : Describe the MediaConvert endpoint
+Run the following command: 
+```
+    aws mediaconvert describe-endpoints --query "Endpoints[0].Url" --output text
+```
+This will return the url for the mediaconvert endpoint
+Leave the mediaconvert_role_arn string empty
+
+### Overview of Terraform Scripts
+container_definitions.tpl : utilizes terraforms template function to dynamically generate JSON formatted container definitions based on the input variables passed
+
+ecr.tf : managed ECR resources
+ecs.tf : handles ECS resources: clusters, services, definitions
+iam.tf : manages identity and access management resources
+main.tf : entry point for the terraform configuration, setting up providers and global settings
+
+outputs.tf : gives description & values for what information is being exposed
+
+s3.tf : defines s3 buckets
+security.tf : handles security groups, controls inboudn and outbound traffic for resources
+
+variables.tf : defines variables that can be passed into the terraform configuration
+
+## Run The Project
+Navigate to the terraform folder/workspace in VS Code From the src folder
+```cd terraform```
+
+
+Initialize terraform working directory
+```terraform init```
+
+Check syntax and validity of your Terraform configuration files
+```terraform validate```
+Display execution plan for the terraform configuration
+```terraform plan```
+
+
+Apply changes to the desired state
+```terraform apply -var-file="terraform.dev.tfvars"```
+Create an ECR Repo
+```aws ecr create-repository --repository-name highlight-pipeline```dotnetcli
+
+
+Log into ECR
+```aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+```
+Build and Push the Docker Image
+```docker build -t highlight-pipeline:latest .
+docker tag highlight-pipeline:latest <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/highlight-pipeline:latest
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/highlight-pipeline:latest
+```
+
+
 ### **Future Enhancements**
 1. Using Terraform to enhance the Infrastructure as Code (IaC)
 2. Increasing the amount of videos process and converted with AWS Media Convert
